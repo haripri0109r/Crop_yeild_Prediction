@@ -36,7 +36,7 @@ This project implements an end-to-end machine learning pipeline for predicting c
 ### Key Highlights
 
 - 📊 **75,000 samples** synthetic dataset with 22 crops across 20 Indian states
-- 🤖 **91.95% accuracy** (R² Score) with Gradient Boosting
+- 🤖 **96.27% accuracy** (R² Score) with Gradient Boosting
 - 🌐 **REST API** for seamless integration
 - 📱 **Responsive Dashboard** with real-time predictions
 - 📈 **Multi-crop comparison** feature
@@ -260,20 +260,21 @@ To host the frontend yourself:
 
 ## 📈 Model Performance
 
-| Model | R² Score | MAE | RMSE |
-|-------|----------|-----|------|
-| **Gradient Boosting** 🏆 | **0.9750** | **37.72** | **52.20** |
-| Random Forest | 0.9680 | 42.15 | 58.90 |
-| XGBoost | 0.9620 | 45.80 | 64.20 |
-| SVR | 0.8950 | 78.30 | 106.50 |
-| Linear Regression | 0.7820 | 112.40 | 153.80 |
+| Model | R² Score | MAE (kg/ha) | RMSE (kg/ha) |
+|-------|----------|-------------|--------------|
+| **Gradient Boosting** 🏆 | **0.9627** | **1,610** | **3,574** |
+| Random Forest | 0.9594 | 1,782 | 3,728 |
+| Decision Tree | 0.8834 | 2,514 | 6,314 |
+| Linear Regression | 0.7156 | 5,221 | 9,866 |
+
+> **Why Gradient Boosting?** Selected for best generalization (CV R² = 0.9603), faster inference (~3x), smaller model size (~4x), and better outlier handling compared to Random Forest.
 
 ### Feature Importance (Top 5)
-1. Fertilizer Amount (28.5%)
-2. Rainfall (18.2%)
-3. Temperature (14.7%)
-4. Soil Quality (12.3%)
-5. Irrigation Schedule (9.8%)
+1. Crop Type (~25%)
+2. Year (~18%)
+3. Rainfall (~12%)
+4. Fertilizer Amount (~11%)
+5. Temperature (~9%)
 
 ---
 
