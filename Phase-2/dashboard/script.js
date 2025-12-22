@@ -198,7 +198,7 @@ async function makePrediction() {
         
         if (result.status === 'success') {
             console.log('✅ API Response:', result);
-            displayResults(result);
+            displayResults(result, formData);
             
             // NEW: Handle multi-crop comparison results
             if (result.multi_crop_comparison) {
@@ -226,7 +226,7 @@ async function makePrediction() {
 /**
  * Display prediction results - Enhanced with crop, location & total production
  */
-function displayResults(result) {
+function displayResults(result, formData = {}) {
     const prediction = result.prediction;
     const yieldKg = prediction.yield_kg_per_hectare;
     const yieldTons = prediction.yield_tons_per_hectare;
@@ -349,7 +349,7 @@ function displayResults(result) {
         <div class="result-tips">
             <h4>💡 Recommendations for ${cropType} in ${state}</h4>
             <ul>
-                ${getRecommendations(result.input_features, yieldKg, cropType, state)}
+                ${getRecommendations(formData, yieldKg, cropType, state)}
             </ul>
         </div>
     `;
@@ -420,10 +420,13 @@ function displayMultiCropComparison(comparison) {
 function getRecommendations(input, predictedYield, cropType = 'crop', state = 'your area') {
     const tips = [];
     
+    // Safety check for undefined input
+    if (!input) input = {};
+    
     // Crop-specific recommendations
     if (cropType === 'Rice') {
         tips.push('<li>For rice, maintain water levels during critical growth stages</li>');
-        if (input.Irrigation_Schedule < 5) {
+        if (input.Irrigation_Schedule && input.Irrigation_Schedule < 5) {
             tips.push('<li>Rice typically needs frequent irrigation - consider increasing frequency</li>');
         }
     } else if (cropType === 'Wheat') {
