@@ -202,7 +202,23 @@ curl -X POST http://localhost:5000/predict \
 | Training Samples | 60,000 |
 | Test Samples | 15,000 |
 
+### All Models Compared
+
+| Model | R² Score | MAE (kg/ha) | RMSE (kg/ha) |
+|-------|----------|-------------|--------------|
+| **Gradient Boosting** 🏆 | **0.9627** | **1,610** | **3,574** |
+| Random Forest | 0.9594 | 1,782 | 3,728 |
+| Decision Tree | 0.8834 | 2,514 | 6,314 |
+| Linear Regression | 0.7156 | 5,221 | 9,866 |
+
 **Why Gradient Boosting?** Selected for best generalization (CV R² = 0.9603), faster inference (~3x), smaller model size (~4x), and better outlier handling compared to Random Forest.
+
+### Feature Importance (Top 5)
+1. Crop Type (~25%)
+2. Year (~18%)
+3. Rainfall (~12%)
+4. Fertilizer Amount (~11%)
+5. Temperature (~9%)
 
 ---
 
