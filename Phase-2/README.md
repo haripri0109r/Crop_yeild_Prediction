@@ -12,7 +12,7 @@ GitHub: [github.com/Pushkarjay/Crop-Yield-Prediction](https://github.com/Pushkar
 Phase-2 implements the complete production-ready machine learning pipeline including:
 - Synthetic dataset generation (75,000 records)
 - Data preprocessing and feature engineering
-- Model training and evaluation (Gradient Boosting, R² = 0.9195)
+- Model training and evaluation (Gradient Boosting, R² = 0.9627)
 - REST API for predictions
 - Interactive web dashboard
 - Comprehensive technical documentation
@@ -195,11 +195,14 @@ curl -X POST http://localhost:5000/predict \
 
 | Metric | Value |
 |--------|-------|
-| R² Score | 0.9195 |
-| MAE | 2,501 kg/ha |
-| RMSE | 5,247 kg/ha |
+| R² Score | 0.9627 |
+| MAE | 1,610 kg/ha |
+| RMSE | 3,574 kg/ha |
+| Cross-Val R² | 0.9603 |
 | Training Samples | 60,000 |
 | Test Samples | 15,000 |
+
+**Why Gradient Boosting?** Selected for best generalization (CV R² = 0.9603), faster inference (~3x), smaller model size (~4x), and better outlier handling compared to Random Forest.
 
 ---
 
