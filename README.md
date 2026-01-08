@@ -4,28 +4,40 @@
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3+-orange.svg)](https://scikit-learn.org)
 [![Flask](https://img.shields.io/badge/Flask-3.1-green.svg)](https://flask.palletsprojects.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
-An AI-powered agricultural yield forecasting system that predicts crop yields based on environmental conditions, soil properties, and farm management practices.
+[![GitHub Pages](https://img.shields.io/badge/Demo-GitHub%20Pages-brightgreen)](https://pushkarjay.github.io/Crop-Yield-Prediction/Phase-2/dashboard/)
 
 **Author:** Pushkarjay Ajay
 
 ---
 
+## 🌱 About This Project
+
+The **Crop Yield Prediction System** is a comprehensive, end-to-end machine learning solution designed to revolutionize agricultural decision-making by providing accurate, data-driven crop yield forecasts. In an era where climate change and population growth pose significant challenges to global food security, this project addresses the critical need for intelligent farming tools that empower farmers, agricultural researchers, and policymakers with actionable insights.
+
+This system leverages advanced machine learning algorithms, specifically Gradient Boosting Regression, to analyze complex relationships between environmental factors, soil characteristics, and farm management practices. By processing data from 22 different crop types across 20 Indian states, the model has been trained on a robust synthetic dataset of 75,000 samples, achieving an impressive **96.27% accuracy (R² Score)**—demonstrating its reliability for real-world agricultural applications.
+
+The project encompasses the complete data science lifecycle: from synthetic data generation that mirrors real agricultural patterns, through exploratory data analysis and feature engineering, to model training, evaluation, and deployment. The production-ready REST API enables seamless integration with existing agricultural management systems, while the responsive web dashboard provides an intuitive interface for farmers and agricultural officers to obtain instant yield predictions without technical expertise.
+
+Key innovations include multi-crop comparison capabilities, total production calculators with support for various land measurement units (Hectares, Acres, Bigha), and comprehensive technical documentation. The modular architecture ensures maintainability and extensibility, allowing for future enhancements such as real-time weather API integration, geo-spatial prediction maps, and mobile applications. Whether you're a smallholder farmer seeking to optimize your harvest or an agricultural enterprise planning large-scale operations, this system provides the predictive intelligence needed to make informed decisions and maximize agricultural productivity.
+
+---
+
 ## 📋 Table of Contents
 
-- [Overview](#overview)
-- [Project Structure](#project-structure)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Live Demo](#live-demo)
-- [API Reference](#api-reference)
-- [Model Performance](#model-performance)
-- [Screenshots](#screenshots)
-- [Future Enhancements](#future-enhancements)
-- [Contributing](#contributing)
-- [License](#license)
+- [About This Project](#-about-this-project)
+- [Overview](#-overview)
+- [Project Structure](#-project-structure)
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Installation](#-installation)
+- [Usage](#-usage)
+- [Live Demo](#-live-demo)
+- [API Reference](#-api-reference)
+- [Model Performance](#-model-performance)
+- [Screenshots](#-screenshots)
+- [Future Enhancements](#-future-enhancements)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ---
 

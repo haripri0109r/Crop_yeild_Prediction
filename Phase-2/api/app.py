@@ -80,6 +80,7 @@ def home():
         'dataset': '75,000 synthetic records',
         'endpoints': {
             '/predict': 'POST - Predict crop yield',
+            '/predict-batch': 'POST - Batch predictions',
             '/features': 'GET - Get list of required features',
             '/model-info': 'GET - Get model information',
             '/health': 'GET - Health check',
@@ -346,7 +347,8 @@ def predict():
                 comparison_results.append({
                     'crop': crop,
                     'yield_kg_per_hectare': round(crop_pred, 2),
-                    'yield_tons_per_hectare': round(crop_pred / 1000, 3)
+                    'yield_tons_per_hectare': round(crop_pred / 1000, 3),
+                    'bags_per_hectare_50kg': round(crop_pred / 50, 1)
                 })
             
             # Sort by yield
@@ -362,7 +364,7 @@ def predict():
         }), 500
 
 
-@app.route('/batch-predict', methods=['POST'])
+@app.route('/predict-batch', methods=['POST'])
 def batch_predict():
     """Batch prediction for multiple scenarios"""
     try:

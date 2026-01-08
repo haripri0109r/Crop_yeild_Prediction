@@ -201,9 +201,9 @@ async function makePrediction() {
             displayResults(result, formData);
             
             // NEW: Handle multi-crop comparison results
-            if (result.multi_crop_comparison) {
-                console.log('📊 Multi-crop comparison data:', result.multi_crop_comparison);
-                displayMultiCropComparison(result.multi_crop_comparison);
+            if (result.crop_comparison) {
+                console.log('📊 Multi-crop comparison data:', result.crop_comparison);
+                displayMultiCropComparison(result.crop_comparison);
             }
         } else {
             showError(result.message || 'Prediction failed. Please try again.');
@@ -359,7 +359,7 @@ function displayResults(result, formData = {}) {
     
     // NEW: Hide comparison section if no comparison requested
     const comparisonSection = document.getElementById('comparisonSection');
-    if (comparisonSection && !result.multi_crop_comparison) {
+    if (comparisonSection && !result.crop_comparison) {
         comparisonSection.style.display = 'none';
     }
 }
@@ -375,9 +375,14 @@ function displayMultiCropComparison(comparison) {
     
     comparisonSection.style.display = 'block';
     
+    // Handle both array format (from backend) and object format
+    const results = Array.isArray(comparison) ? comparison : comparison.results;
+    const note = comparison.note || 'Comparison based on current conditions';
+    const supported = comparison.supported !== false;
+    
     let tableHTML = `
-        <div class="comparison-note ${comparison.supported ? 'supported' : 'demo'}">
-            ${comparison.supported ? '✅' : 'ℹ️'} ${comparison.note}
+        <div class="comparison-note ${supported ? 'supported' : 'demo'}">
+            ${supported ? '✅' : 'ℹ️'} ${note}
         </div>
         <table class="comparison-table">
             <thead>
@@ -392,15 +397,16 @@ function displayMultiCropComparison(comparison) {
             <tbody>
     `;
     
-    comparison.results.forEach((item, index) => {
+    results.forEach((item, index) => {
         const rowClass = index === 0 ? 'top-crop' : '';
+        const bagsPerHa = item.bags_per_hectare_50kg || Math.round(item.yield_kg_per_hectare / 50);
         tableHTML += `
             <tr class="${rowClass}">
                 <td>${index + 1}</td>
                 <td><strong>${item.crop}</strong></td>
                 <td>${item.yield_kg_per_hectare.toLocaleString()}</td>
                 <td>${item.yield_tons_per_hectare}</td>
-                <td>${item.bags_per_hectare_50kg}</td>
+                <td>${bagsPerHa}</td>
             </tr>
         `;
     });
