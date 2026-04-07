@@ -692,3 +692,131 @@ document.addEventListener('DOMContentLoaded', () => {
     // Re-check every 30 seconds
     setInterval(checkBackendStatus, 30000);
 });
+
+// ============================================
+// Chatbot Integration (Groq via Flask /chat)
+// ============================================
+
+const chatToggle = document.getElementById('chatToggle');
+const chatWidget = document.getElementById('chatWidget');
+const chatClose = document.getElementById('chatClose');
+const chatMessages = document.getElementById('chatMessages');
+const chatForm = document.getElementById('chatForm');
+const chatInput = document.getElementById('chatInput');
+
+const chatHistory = [
+    {
+        role: 'assistant',
+        content: 'Hi! I can help you understand crop yield predictions, soil factors, and farming decisions.'
+    }
+];
+
+function toggleChatWidget(openState) {
+    if (!chatWidget || !chatToggle) return;
+
+    const shouldOpen = typeof openState === 'boolean' ? openState : chatWidget.classList.contains('hidden');
+    chatWidget.classList.toggle('hidden', !shouldOpen);
+    chatToggle.textContent = shouldOpen ? '✕' : '💬';
+    chatToggle.title = shouldOpen ? 'Close AI Assistant' : 'Open AI Assistant';
+
+    if (shouldOpen && chatInput) {
+        setTimeout(() => chatInput.focus(), 120);
+    }
+}
+
+function addChatMessage(role, content) {
+    if (!chatMessages) return;
+
+    const row = document.createElement('div');
+    row.className = `chat-message ${role === 'user' ? 'user' : 'bot'}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = content;
+
+    row.appendChild(bubble);
+    chatMessages.appendChild(row);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function setChatLoading(isLoading) {
+    const sendButton = document.getElementById('chatSend');
+    if (!sendButton) return;
+
+    sendButton.disabled = isLoading;
+    sendButton.textContent = isLoading ? '...' : 'Send';
+}
+
+async function submitChatMessage(text) {
+    const userText = (text || '').trim();
+    if (!userText) return;
+
+    addChatMessage('user', userText);
+    chatHistory.push({ role: 'user', content: userText });
+    setChatLoading(true);
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/chat`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                messages: chatHistory.slice(-8).map((m) => ({ role: m.role, content: m.content }))
+            })
+        });
+
+        const data = await response.json();
+        if (!response.ok || data.status !== 'success') {
+            throw new Error(data.message || 'Chat request failed');
+        }
+
+        const reply = data.reply || 'I could not generate a response right now.';
+        addChatMessage('assistant', reply);
+        chatHistory.push({ role: 'assistant', content: reply });
+    } catch (error) {
+        const fallback = 'I could not reach the AI service. Please check API status and GROQ_API_KEY.';
+        addChatMessage('assistant', fallback);
+        chatHistory.push({ role: 'assistant', content: fallback });
+        console.error('Chat error:', error);
+    } finally {
+        setChatLoading(false);
+    }
+}
+
+if (chatToggle) {
+    chatToggle.addEventListener('click', () => toggleChatWidget());
+}
+
+if (chatClose) {
+    chatClose.addEventListener('click', () => toggleChatWidget(false));
+}
+
+if (chatInput) {
+    chatInput.addEventListener('input', () => {
+        chatInput.style.height = 'auto';
+        chatInput.style.height = `${Math.min(chatInput.scrollHeight, 120)}px`;
+    });
+
+    chatInput.addEventListener('keydown', async (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            const text = chatInput.value;
+            chatInput.value = '';
+            chatInput.style.height = '40px';
+            await submitChatMessage(text);
+        }
+    });
+}
+
+if (chatForm) {
+    chatForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!chatInput) return;
+
+        const text = chatInput.value;
+        chatInput.value = '';
+        chatInput.style.height = '40px';
+        await submitChatMessage(text);
+    });
+}

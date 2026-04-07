@@ -11,7 +11,11 @@ import joblib
 import numpy as np
 import pandas as pd
 import os
+from groq import Groq
+from dotenv import load_dotenv
 from datetime import datetime
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -130,6 +134,47 @@ def get_states():
         'states': ['Punjab', 'Haryana', 'Maharashtra', 'Karnataka'],
         'total': 4
     })
+
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    """Groq-backed chatbot endpoint for alloy/material assistant style Q&A"""
+    try:
+        data = request.get_json(silent=True) or {}
+        messages = data.get('messages', [])[-6:]
+
+        if not isinstance(messages, list):
+            return jsonify({'status': 'error', 'message': 'messages must be a list'}), 400
+
+        api_key = os.environ.get('GROQ_API_KEY')
+        if not api_key:
+            return jsonify({
+                'status': 'error',
+                'message': 'GROQ_API_KEY not configured in environment'
+            }), 500
+
+        client = Groq(api_key=api_key)
+        response = client.chat.completions.create(
+            model='llama-3.1-8b-instant',
+            messages=[
+                {
+                    'role': 'system',
+                    'content': (
+                        'You are an expert agricultural assistant for crop yield prediction. '
+                        'Help users understand crop choices, weather impact, soil factors, '
+                        'predictions, and farming decisions. Be concise and practical.'
+                    )
+                },
+                *messages
+            ],
+            temperature=0.7,
+            max_tokens=1024,
+        )
+
+        reply = response.choices[0].message.content
+        return jsonify({'status': 'success', 'reply': reply})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 @app.route('/features', methods=['GET'])
@@ -455,7 +500,7 @@ if __name__ == '__main__':
     print("🌾 Starting Crop Yield Prediction API Server")
     print("=" * 50)
     print(f"📍 URL: http://localhost:5000")
-    print(f"📊 Endpoints: /, /health, /predict, /crops, /states")
+    print(f"📊 Endpoints: /, /health, /predict, /crops, /states, /chat")
     print("=" * 50 + "\n")
     
     app.run(debug=True, host='0.0.0.0', port=5000)
