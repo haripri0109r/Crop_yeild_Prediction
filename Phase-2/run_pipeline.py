@@ -1,14 +1,3 @@
-"""
-Master Pipeline Runner - Run all steps of the crop yield prediction workflow
-Author: Pushkarjay Ajay
-
-Usage:
-    python run_pipeline.py              # Run all steps
-    python run_pipeline.py --generate   # Only generate synthetic data
-    python run_pipeline.py --train      # Only train model
-    python run_pipeline.py --analyze    # Only run outlier analysis
-    python run_pipeline.py --visualize  # Only create visualizations
-"""
 
 import argparse
 import os

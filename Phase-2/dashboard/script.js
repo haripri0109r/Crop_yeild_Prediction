@@ -76,8 +76,8 @@ const SAMPLE_DATA = {
     Crop_Price: 2000,
     // Categorical (now ML active)
     crop_type: 'Rice',
-    state: 'Punjab',
-    district: 'Ludhiana',
+    state: 'Tamil Nadu',
+    district: 'Coimbatore',
     season: 'Kharif',
     soil_type: 'Alluvial',
     irrigation_type: 'Canal',
@@ -95,21 +95,27 @@ const SAMPLE_DATA = {
 // ============================================
 
 // Form Submission
-predictionForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await makePrediction();
-});
+if (predictionForm) {
+    predictionForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await makePrediction();
+    });
+}
 
 // Reset Button
-resetBtn.addEventListener('click', () => {
-    predictionForm.reset();
-    showPlaceholder();
-});
+if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+        predictionForm.reset();
+        showPlaceholder();
+    });
+}
 
 // Sample Data Button
-sampleBtn.addEventListener('click', () => {
-    loadSampleData();
-});
+if (sampleBtn) {
+    sampleBtn.addEventListener('click', () => {
+        loadSampleData();
+    });
+}
 
 // Field Status Toggle Button
 const toggleFieldStatusBtn = document.getElementById('toggleFieldStatus');
@@ -276,86 +282,51 @@ function displayResults(result, formData = {}) {
         locationStr += ` (${season} Season)`;
     }
     
-    // NEW: Total production section HTML
-    let totalProductionHTML = '';
-    if (totalProd) {
-        totalProductionHTML = `
-            <div class="total-production-card">
-                <h4>📐 Total Production for Your Farm</h4>
-                <div class="farm-size-info">
-                    Farm Size: <strong>${totalProd.farm_area_input} ${totalProd.farm_area_unit}</strong>
-                    (${totalProd.effective_area_hectares} ha)
-                </div>
-                <div class="total-production-grid">
-                    <div class="total-item">
-                        <div class="total-value">${totalProd.total_kg.toLocaleString()}</div>
-                        <div class="total-label">Total kg</div>
-                    </div>
-                    <div class="total-item">
-                        <div class="total-value">${totalProd.total_tons}</div>
-                        <div class="total-label">Total Tons</div>
-                    </div>
-                    <div class="total-item">
-                        <div class="total-value">${totalProd.total_quintals}</div>
-                        <div class="total-label">Total Quintals</div>
-                    </div>
-                    <div class="total-item">
-                        <div class="total-value">${totalProd.bags_50kg}</div>
-                        <div class="total-label">Bags (50kg)</div>
-                    </div>
-                </div>
-            </div>
-        `;
+    // Show section and clear error
+    resultsContainer.style.display = 'block';
+    const errorMessage = document.getElementById('errorMessage');
+    if (errorMessage) {
+        errorMessage.style.display = 'none';
     }
-    
-    resultsContainer.innerHTML = `
-        <div class="result-card">
-            <div class="result-badge ${qualityClass}">${qualityIcon} ${qualityText}</div>
-            
-            <!-- NEW: Crop & Location Header -->
-            <div class="crop-location-header">
-                <span class="crop-badge">🌾 ${cropType}</span>
-                <span class="location-badge">📍 ${locationStr}</span>
-            </div>
-            
-            <div class="result-title">Predicted Crop Yield</div>
-            <div class="result-value">${yieldKg.toLocaleString()}</div>
-            <div class="result-unit">kg per hectare</div>
-            
-            <div class="result-secondary">
-                <div class="result-item">
-                    <div class="result-item-label">Tons per Hectare</div>
-                    <div class="result-item-value">${yieldTons} t/ha</div>
-                </div>
-                <div class="result-item">
-                    <div class="result-item-label">Quintals per Hectare</div>
-                    <div class="result-item-value">${(yieldKg / 100).toFixed(2)} q/ha</div>
-                </div>
-                <div class="result-item">
-                    <div class="result-item-label">Bags (50kg) per Hectare</div>
-                    <div class="result-item-value">${Math.round(yieldKg / 50)} bags</div>
-                </div>
-            </div>
-            
-            ${totalProductionHTML}
-            
-            ${result.features_imputed && result.features_imputed.length > 0 ? `
-                <div class="imputed-notice">
-                    <small>ℹ️ Missing values were estimated for: ${result.features_imputed.join(', ')}</small>
-                </div>
-            ` : ''}
-        </div>
-        
-        <div class="result-tips">
-            <h4>💡 Recommendations for ${cropType} in ${state}</h4>
-            <ul>
-                ${getRecommendations(formData, yieldKg, cropType, state)}
-            </ul>
-        </div>
-    `;
-    
-    // Add animation
-    resultsContainer.querySelector('.result-card').classList.add('animate-in');
+
+    // Update quality badge
+    const qualityBadge = document.getElementById('qualityBadge');
+    if (qualityBadge) {
+        qualityBadge.innerHTML = `
+            <span class="quality-icon">${qualityIcon}</span>
+            <span class="quality-text">${qualityText}</span>
+        `;
+        qualityBadge.className = `quality-badge ${qualityClass}`;
+    }
+
+    // Update primary prediction values
+    const yieldPerHa = document.getElementById('yieldPerHa');
+    const yieldTonsEl = document.getElementById('yieldTons');
+    const yieldQuintals = document.getElementById('yieldQuintals');
+
+    if (yieldPerHa) yieldPerHa.textContent = `${yieldKg.toLocaleString()} kg`;
+    if (yieldTonsEl) yieldTonsEl.textContent = `${yieldTons} tons`;
+    if (yieldQuintals) yieldQuintals.textContent = `${(yieldKg / 100).toFixed(2)} q`;
+
+    // Update total production block
+    const totalProductionCard = document.getElementById('totalProductionCard');
+    if (totalProductionCard && totalProd) {
+        totalProductionCard.style.display = 'block';
+
+        const farmSizeInfo = document.getElementById('farmSizeInfo');
+        const totalKg = document.getElementById('totalKg');
+        const totalTons = document.getElementById('totalTons');
+        const totalQuintals = document.getElementById('totalQuintals');
+
+        if (farmSizeInfo) {
+            farmSizeInfo.textContent = `Farm Size: ${totalProd.farm_area_input} ${totalProd.farm_area_unit} (${totalProd.effective_area_hectares} ha)`;
+        }
+        if (totalKg) totalKg.textContent = `${Number(totalProd.total_kg || 0).toLocaleString()} kg`;
+        if (totalTons) totalTons.textContent = `${totalProd.total_tons} tons`;
+        if (totalQuintals) totalQuintals.textContent = `${totalProd.total_quintals} q`;
+    } else if (totalProductionCard) {
+        totalProductionCard.style.display = 'none';
+    }
     
     // NEW: Hide comparison section if no comparison requested
     const comparisonSection = document.getElementById('comparisonSection');
@@ -494,28 +465,36 @@ function loadSampleData() {
  * Show placeholder message
  */
 function showPlaceholder() {
-    resultsContainer.innerHTML = `
-        <div class="result-placeholder">
-            <span class="placeholder-icon">🌾</span>
-            <p>Enter crop parameters and click "Predict Yield" to see results</p>
-        </div>
-    `;
+    const resultsTitle = document.getElementById('resultsTitle');
+    const qualityBadge = document.getElementById('qualityBadge');
+    const yieldPerHa = document.getElementById('yieldPerHa');
+    const yieldTonsEl = document.getElementById('yieldTons');
+    const yieldQuintals = document.getElementById('yieldQuintals');
+    const totalProductionCard = document.getElementById('totalProductionCard');
+    const errorMessage = document.getElementById('errorMessage');
+
+    if (resultsTitle) resultsTitle.textContent = '📈 Prediction Results';
+    if (qualityBadge) {
+        qualityBadge.innerHTML = '<span class="quality-icon">🌟</span><span class="quality-text">Ready</span>';
+    }
+    if (yieldPerHa) yieldPerHa.textContent = '0 kg';
+    if (yieldTonsEl) yieldTonsEl.textContent = '0 tons';
+    if (yieldQuintals) yieldQuintals.textContent = '0 q';
+    if (totalProductionCard) totalProductionCard.style.display = 'none';
+    if (errorMessage) errorMessage.style.display = 'none';
 }
 
 /**
  * Show error message
  */
 function showError(message) {
-    resultsContainer.innerHTML = `
-        <div class="error-card">
-            <div class="error-icon">⚠️</div>
-            <h3>Prediction Error</h3>
-            <p>${message}</p>
-            <button class="btn btn-outline" onclick="showPlaceholder()" style="margin-top: 15px; color: white; border-color: white;">
-                Try Again
-            </button>
-        </div>
-    `;
+    resultsContainer.style.display = 'block';
+    const errorMessage = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    if (errorMessage && errorText) {
+        errorText.textContent = message;
+        errorMessage.style.display = 'flex';
+    }
 }
 
 /**
@@ -541,14 +520,17 @@ function showNotification(message) {
     `;
     notification.style.cssText = `
         position: fixed;
-        top: 20px;
+        top: 84px;
         right: 20px;
-        background: var(--primary-color);
-        color: white;
+        background: linear-gradient(135deg, var(--primary, #2e7d32), var(--primary-dark, #1b5e20));
+        color: #ffffff;
         padding: 15px 25px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        z-index: 1001;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        font-weight: 600;
+        max-width: min(92vw, 460px);
+        z-index: 2000;
         animation: slideIn 0.3s ease;
     `;
     
@@ -627,7 +609,7 @@ style.textContent = `
         text-align: left;
     }
     .result-tips h4 {
-        color: var(--primary-color);
+        color: var(--primary, #2e7d32);
         margin-bottom: 15px;
     }
     .result-tips ul {
@@ -644,7 +626,7 @@ style.textContent = `
         content: '→';
         position: absolute;
         left: 0;
-        color: var(--primary-color);
+        color: var(--primary, #2e7d32);
     }
     .animate-in {
         animation: fadeInUp 0.5s ease;
