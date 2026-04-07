@@ -14,8 +14,30 @@ const loadingOverlay = document.getElementById('loadingOverlay');
 const resetBtn = document.getElementById('resetBtn');
 const sampleBtn = document.getElementById('sampleBtn');
 
+const whatIfRainfall = document.getElementById('whatifRainfall');
+const whatIfTemp = document.getElementById('whatifTemp');
+const whatIfFertilizer = document.getElementById('whatifFertilizer');
+const whatIfPrice = document.getElementById('whatifPrice');
+const whatIfRainfallValue = document.getElementById('whatifRainfallValue');
+const whatIfTempValue = document.getElementById('whatifTempValue');
+const whatIfFertilizerValue = document.getElementById('whatifFertilizerValue');
+const whatIfPriceValue = document.getElementById('whatifPriceValue');
+const simulateWhatIfBtn = document.getElementById('simulateWhatIfBtn');
+const resetWhatIfBtn = document.getElementById('resetWhatIfBtn');
+const whatIfResult = document.getElementById('whatIfResult');
+
+const saveScenarioABtn = document.getElementById('saveScenarioABtn');
+const saveScenarioBBtn = document.getElementById('saveScenarioBBtn');
+const compareScenarioBtn = document.getElementById('compareScenarioBtn');
+const scenarioTableBody = document.getElementById('scenarioTableBody');
+
+const exportCsvBtn = document.getElementById('exportCsvBtn');
+const exportPdfBtn = document.getElementById('exportPdfBtn');
+
 // Shared context for chatbot: updated on each successful prediction.
 window.latestPredictionContext = null;
+window.latestPredictionResult = null;
+window.savedScenarios = { A: null, B: null };
 
 // Feature List (must match API expectations - 75K Synthetic Dataset)
 const FEATURES = [
@@ -110,8 +132,10 @@ if (resetBtn) {
     resetBtn.addEventListener('click', () => {
         predictionForm.reset();
         window.latestPredictionContext = null;
+        window.latestPredictionResult = null;
         window.dispatchEvent(new CustomEvent('predictionContextUpdated', { detail: null }));
         showPlaceholder();
+        resetWhatIfControls();
     });
 }
 
@@ -219,6 +243,7 @@ async function makePrediction() {
                 total_production: result.total_production || {},
                 crop_comparison: result.crop_comparison || []
             };
+            window.latestPredictionResult = result;
             window.dispatchEvent(new CustomEvent('predictionContextUpdated', { detail: window.latestPredictionContext }));
             
             // NEW: Handle multi-crop comparison results
@@ -358,7 +383,7 @@ function formatINR(amount) {
     return `₹${Math.round(amount || 0).toLocaleString('en-IN')}`;
 }
 
-function renderEconomics(input, result) {
+function computeEconomics(input, result) {
     const predictedKgHa = Number(result?.prediction?.yield_kg_per_hectare || 0);
     const pricePerKg = Number(input?.Crop_Price || DEFAULT_VALUES.Crop_Price || 0);
     const farmArea = Number(input?.farm_area || 1);
@@ -375,6 +400,12 @@ function renderEconomics(input, result) {
     const totalCost = fertilizerCost + baseOpsCost;
     const profit = revenue - totalCost;
 
+    return { totalKg, revenue, totalCost, profit, areaHa };
+}
+
+function renderEconomics(input, result) {
+    const { revenue, totalCost, profit } = computeEconomics(input, result);
+
     const revenueEl = document.getElementById('estimatedRevenue');
     const costEl = document.getElementById('estimatedCost');
     const profitEl = document.getElementById('estimatedProfit');
@@ -385,6 +416,209 @@ function renderEconomics(input, result) {
         profitEl.textContent = formatINR(profit);
         profitEl.style.color = profit >= 0 ? '#2e7d32' : '#c62828';
     }
+}
+
+function updateWhatIfLabels() {
+    if (whatIfRainfallValue && whatIfRainfall) whatIfRainfallValue.textContent = `${whatIfRainfall.value}%`;
+    if (whatIfTempValue && whatIfTemp) whatIfTempValue.textContent = `${whatIfTemp.value}°C`;
+    if (whatIfFertilizerValue && whatIfFertilizer) whatIfFertilizerValue.textContent = `${whatIfFertilizer.value}%`;
+    if (whatIfPriceValue && whatIfPrice) whatIfPriceValue.textContent = `${whatIfPrice.value}%`;
+}
+
+function resetWhatIfControls() {
+    if (whatIfRainfall) whatIfRainfall.value = 0;
+    if (whatIfTemp) whatIfTemp.value = 0;
+    if (whatIfFertilizer) whatIfFertilizer.value = 0;
+    if (whatIfPrice) whatIfPrice.value = 0;
+    updateWhatIfLabels();
+    if (whatIfResult) whatIfResult.textContent = 'Run simulation to compare baseline vs adjusted scenario.';
+}
+
+async function runWhatIfSimulation() {
+    if (!window.latestPredictionContext || !window.latestPredictionContext.inputs || !window.latestPredictionResult) {
+        showNotification('Run a baseline prediction first before using What-If simulation.');
+        return;
+    }
+
+    const baseInput = { ...window.latestPredictionContext.inputs };
+    const modifiedInput = { ...baseInput };
+
+    const rainPct = Number(whatIfRainfall?.value || 0);
+    const tempDelta = Number(whatIfTemp?.value || 0);
+    const fertPct = Number(whatIfFertilizer?.value || 0);
+    const pricePct = Number(whatIfPrice?.value || 0);
+
+    modifiedInput.Rainfall_mm = Number((Number(baseInput.Rainfall_mm || DEFAULT_VALUES.Rainfall_mm) * (1 + rainPct / 100)).toFixed(2));
+    modifiedInput.Temperature_C = Number((Number(baseInput.Temperature_C || DEFAULT_VALUES.Temperature_C) + tempDelta).toFixed(2));
+    modifiedInput.Fertilizer_Amount_kg_per_hectare = Number((Number(baseInput.Fertilizer_Amount_kg_per_hectare || DEFAULT_VALUES.Fertilizer_Amount_kg_per_hectare) * (1 + fertPct / 100)).toFixed(2));
+    modifiedInput.Crop_Price = Number((Number(baseInput.Crop_Price || DEFAULT_VALUES.Crop_Price) * (1 + pricePct / 100)).toFixed(2));
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/predict`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(modifiedInput)
+        });
+        const simResult = await response.json();
+
+        if (simResult.status !== 'success') {
+            throw new Error(simResult.message || 'Simulation failed');
+        }
+
+        const baselineYield = Number(window.latestPredictionResult?.prediction?.yield_kg_per_hectare || 0);
+        const simYield = Number(simResult?.prediction?.yield_kg_per_hectare || 0);
+        const deltaYield = simYield - baselineYield;
+
+        const baseEco = computeEconomics(baseInput, window.latestPredictionResult);
+        const simEco = computeEconomics(modifiedInput, simResult);
+        const deltaProfit = simEco.profit - baseEco.profit;
+
+        if (whatIfResult) {
+            whatIfResult.innerHTML = `
+                Baseline Yield: <strong>${baselineYield.toFixed(2)} kg/ha</strong> | Simulated Yield: <strong>${simYield.toFixed(2)} kg/ha</strong><br>
+                Yield Change: <strong>${deltaYield >= 0 ? '+' : ''}${deltaYield.toFixed(2)} kg/ha</strong> | Profit Change: <strong>${deltaProfit >= 0 ? '+' : ''}${formatINR(deltaProfit)}</strong>
+            `;
+        }
+    } catch (error) {
+        if (whatIfResult) {
+            whatIfResult.textContent = `Simulation failed: ${error.message}`;
+        }
+    }
+}
+
+function saveScenario(slot) {
+    if (!window.latestPredictionContext || !window.latestPredictionResult) {
+        showNotification('Run prediction first, then save scenario.');
+        return;
+    }
+
+    window.savedScenarios[slot] = {
+        input: { ...window.latestPredictionContext.inputs },
+        result: JSON.parse(JSON.stringify(window.latestPredictionResult)),
+        economics: computeEconomics(window.latestPredictionContext.inputs, window.latestPredictionResult)
+    };
+    showNotification(`Scenario ${slot} saved.`);
+}
+
+function compareScenarios() {
+    const a = window.savedScenarios.A;
+    const b = window.savedScenarios.B;
+    if (!a || !b) {
+        showNotification('Save both Scenario A and Scenario B first.');
+        return;
+    }
+
+    const yA = Number(a.result?.prediction?.yield_kg_per_hectare || 0);
+    const yB = Number(b.result?.prediction?.yield_kg_per_hectare || 0);
+    const pA = Number(a.economics?.profit || 0);
+    const pB = Number(b.economics?.profit || 0);
+    const rA = Number(a.economics?.revenue || 0);
+    const rB = Number(b.economics?.revenue || 0);
+
+    if (scenarioTableBody) {
+        scenarioTableBody.innerHTML = `
+            <tr>
+                <td>Yield (kg/ha)</td>
+                <td>${yA.toFixed(2)}</td>
+                <td>${yB.toFixed(2)}</td>
+                <td>${(yB - yA >= 0 ? '+' : '') + (yB - yA).toFixed(2)}</td>
+            </tr>
+            <tr>
+                <td>Revenue</td>
+                <td>${formatINR(rA)}</td>
+                <td>${formatINR(rB)}</td>
+                <td>${(rB - rA >= 0 ? '+' : '') + formatINR(rB - rA)}</td>
+            </tr>
+            <tr>
+                <td>Profit</td>
+                <td>${formatINR(pA)}</td>
+                <td>${formatINR(pB)}</td>
+                <td>${(pB - pA >= 0 ? '+' : '') + formatINR(pB - pA)}</td>
+            </tr>
+            <tr>
+                <td>Crop Type</td>
+                <td>${a.input?.crop_type || '-'}</td>
+                <td>${b.input?.crop_type || '-'}</td>
+                <td>-</td>
+            </tr>
+        `;
+    }
+}
+
+function exportCurrentResultCSV() {
+    if (!window.latestPredictionContext || !window.latestPredictionResult) {
+        showNotification('Run prediction first to export data.');
+        return;
+    }
+
+    const input = window.latestPredictionContext.inputs || {};
+    const result = window.latestPredictionResult || {};
+    const eco = computeEconomics(input, result);
+
+    const rows = [
+        ['Field', 'Value'],
+        ['Crop', input.crop_type || ''],
+        ['State', input.state || ''],
+        ['Season', input.season || ''],
+        ['Yield_kg_per_hectare', result?.prediction?.yield_kg_per_hectare || 0],
+        ['Yield_tons_per_hectare', result?.prediction?.yield_tons_per_hectare || 0],
+        ['Estimated_Revenue_INR', Math.round(eco.revenue || 0)],
+        ['Estimated_Cost_INR', Math.round(eco.totalCost || 0)],
+        ['Estimated_Profit_INR', Math.round(eco.profit || 0)]
+    ];
+
+    Object.keys(input).forEach((k) => rows.push([`input_${k}`, input[k]]));
+
+    const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `crop_prediction_${Date.now()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+}
+
+function exportCurrentResultPDF() {
+    if (!window.latestPredictionContext || !window.latestPredictionResult) {
+        showNotification('Run prediction first to export PDF.');
+        return;
+    }
+
+    const input = window.latestPredictionContext.inputs || {};
+    const result = window.latestPredictionResult || {};
+    const eco = computeEconomics(input, result);
+
+    const printable = window.open('', '_blank', 'width=900,height=700');
+    if (!printable) return;
+
+    printable.document.write(`
+        <html><head><title>CropAI Prediction Report</title>
+        <style>
+            body{font-family:Arial,sans-serif;padding:24px;color:#1a1a1a}
+            h1{color:#2e7d32}
+            table{border-collapse:collapse;width:100%;margin-top:16px}
+            td,th{border:1px solid #ddd;padding:8px}
+            th{background:#f0f4f1;text-align:left}
+        </style>
+        </head><body>
+        <h1>CropAI Prediction Report</h1>
+        <p><strong>Crop:</strong> ${input.crop_type || '-'} | <strong>State:</strong> ${input.state || '-'} | <strong>Season:</strong> ${input.season || '-'}</p>
+        <table>
+            <tr><th>Metric</th><th>Value</th></tr>
+            <tr><td>Yield (kg/ha)</td><td>${result?.prediction?.yield_kg_per_hectare || 0}</td></tr>
+            <tr><td>Yield (t/ha)</td><td>${result?.prediction?.yield_tons_per_hectare || 0}</td></tr>
+            <tr><td>Estimated Revenue</td><td>${formatINR(eco.revenue)}</td></tr>
+            <tr><td>Estimated Cost</td><td>${formatINR(eco.totalCost)}</td></tr>
+            <tr><td>Estimated Profit</td><td>${formatINR(eco.profit)}</td></tr>
+        </table>
+        </body></html>
+    `);
+    printable.document.close();
+    printable.focus();
+    printable.print();
 }
 
 function renderRiskAlerts(input, result) {
@@ -626,6 +860,22 @@ function showError(message) {
         errorMessage.style.display = 'flex';
     }
 }
+
+if (whatIfRainfall) whatIfRainfall.addEventListener('input', updateWhatIfLabels);
+if (whatIfTemp) whatIfTemp.addEventListener('input', updateWhatIfLabels);
+if (whatIfFertilizer) whatIfFertilizer.addEventListener('input', updateWhatIfLabels);
+if (whatIfPrice) whatIfPrice.addEventListener('input', updateWhatIfLabels);
+if (simulateWhatIfBtn) simulateWhatIfBtn.addEventListener('click', runWhatIfSimulation);
+if (resetWhatIfBtn) resetWhatIfBtn.addEventListener('click', resetWhatIfControls);
+
+if (saveScenarioABtn) saveScenarioABtn.addEventListener('click', () => saveScenario('A'));
+if (saveScenarioBBtn) saveScenarioBBtn.addEventListener('click', () => saveScenario('B'));
+if (compareScenarioBtn) compareScenarioBtn.addEventListener('click', compareScenarios);
+
+if (exportCsvBtn) exportCsvBtn.addEventListener('click', exportCurrentResultCSV);
+if (exportPdfBtn) exportPdfBtn.addEventListener('click', exportCurrentResultPDF);
+
+updateWhatIfLabels();
 
 /**
  * Show/hide loading overlay

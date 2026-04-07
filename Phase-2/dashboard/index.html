@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🌾 AI-Powered Crop Yield Prediction</title>
-    <link rel="stylesheet" href="style.css?v=2">
+    <link rel="stylesheet" href="style.css?v=3">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -359,6 +359,70 @@
                 </div>
             </div>
 
+            <!-- What-If Simulator -->
+            <div class="whatif-card" id="whatIfCard">
+                <h3>🧪 What-If Simulator</h3>
+                <div class="whatif-grid">
+                    <div class="whatif-control">
+                        <label for="whatifRainfall">Rainfall Change: <span id="whatifRainfallValue">0%</span></label>
+                        <input type="range" id="whatifRainfall" min="-30" max="30" step="1" value="0">
+                    </div>
+                    <div class="whatif-control">
+                        <label for="whatifTemp">Temperature Change: <span id="whatifTempValue">0°C</span></label>
+                        <input type="range" id="whatifTemp" min="-8" max="8" step="0.5" value="0">
+                    </div>
+                    <div class="whatif-control">
+                        <label for="whatifFertilizer">Fertilizer Change: <span id="whatifFertilizerValue">0%</span></label>
+                        <input type="range" id="whatifFertilizer" min="-30" max="30" step="1" value="0">
+                    </div>
+                    <div class="whatif-control">
+                        <label for="whatifPrice">Price Change: <span id="whatifPriceValue">0%</span></label>
+                        <input type="range" id="whatifPrice" min="-30" max="30" step="1" value="0">
+                    </div>
+                </div>
+                <div class="whatif-actions">
+                    <button type="button" class="btn btn-primary" id="simulateWhatIfBtn">Run Simulation</button>
+                    <button type="button" class="btn btn-outline" id="resetWhatIfBtn">Reset Sliders</button>
+                </div>
+                <div class="whatif-result" id="whatIfResult">Run simulation to compare baseline vs adjusted scenario.</div>
+            </div>
+
+            <!-- Scenario Comparison -->
+            <div class="scenario-card" id="scenarioCard">
+                <h3>🆚 Scenario Compare (A/B)</h3>
+                <div class="scenario-actions">
+                    <button type="button" class="btn btn-secondary" id="saveScenarioABtn">Save as Scenario A</button>
+                    <button type="button" class="btn btn-secondary" id="saveScenarioBBtn">Save as Scenario B</button>
+                    <button type="button" class="btn btn-primary" id="compareScenarioBtn">Compare A vs B</button>
+                </div>
+                <div class="scenario-table-wrap">
+                    <table class="scenario-table" id="scenarioTable">
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Scenario A</th>
+                                <th>Scenario B</th>
+                                <th>Difference (B - A)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scenarioTableBody">
+                            <tr>
+                                <td colspan="4">Save scenarios and click compare.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Export Actions -->
+            <div class="export-card" id="exportCard">
+                <h3>📤 Export Results</h3>
+                <div class="export-actions">
+                    <button type="button" class="btn btn-outline" id="exportCsvBtn">Download CSV</button>
+                    <button type="button" class="btn btn-outline" id="exportPdfBtn">Export PDF</button>
+                </div>
+            </div>
+
             <!-- Error Message -->
             <div class="error-message hidden" id="errorMessage">
                 <span class="error-icon">⚠️</span>
@@ -403,8 +467,8 @@
     </footer>
 
     <!-- Scripts -->
-    <script src="script.js?v=2"></script>
-    <script src="chatbot.js?v=2"></script>
+    <script src="script.js?v=3"></script>
+    <script src="chatbot.js?v=3"></script>
     <script>
         // Navigation scroll functionality
         function scrollToPredict() {

@@ -760,6 +760,85 @@ body {
     font-weight: 700;
 }
 
+.whatif-card,
+.scenario-card,
+.export-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
+}
+
+.whatif-card h3,
+.scenario-card h3,
+.export-card h3 {
+    color: var(--primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.whatif-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.whatif-control label {
+    display: block;
+    font-size: 0.88rem;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+}
+
+.whatif-control input[type="range"] {
+    width: 100%;
+}
+
+.whatif-actions,
+.scenario-actions,
+.export-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: var(--spacing-md);
+}
+
+.whatif-result {
+    margin-top: var(--spacing-md);
+    background: #ffffff;
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    border-left: 4px solid var(--primary);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.scenario-table-wrap {
+    margin-top: var(--spacing-md);
+    overflow-x: auto;
+}
+
+.scenario-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #ffffff;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.scenario-table th,
+.scenario-table td {
+    border-bottom: 1px solid var(--border-light);
+    padding: 10px 12px;
+    font-size: 0.88rem;
+    text-align: left;
+}
+
+.scenario-table th {
+    background: #edf4ee;
+    color: var(--text-primary);
+}
+
 /* ============ ERROR MESSAGE ============ */
 
 .error-message {
