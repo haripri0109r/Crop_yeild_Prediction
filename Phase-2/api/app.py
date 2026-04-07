@@ -10,6 +10,7 @@ from flask_cors import CORS
 import joblib
 import numpy as np
 import pandas as pd
+import json
 import os
 from groq import Groq
 from dotenv import load_dotenv
@@ -138,10 +139,11 @@ def get_states():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    """Groq-backed chatbot endpoint for alloy/material assistant style Q&A"""
+    """Groq-backed chatbot endpoint with optional prediction-aware analysis context"""
     try:
         data = request.get_json(silent=True) or {}
         messages = data.get('messages', [])[-6:]
+        prediction_context = data.get('prediction_context')
 
         if not isinstance(messages, list):
             return jsonify({'status': 'error', 'message': 'messages must be a list'}), 400
@@ -153,6 +155,31 @@ def chat():
                 'message': 'GROQ_API_KEY not configured in environment'
             }), 500
 
+        # Keep context compact and deterministic for reliable model-grounded explanations.
+        context_payload = None
+        if isinstance(prediction_context, dict):
+            context_payload = {
+                'inputs': prediction_context.get('inputs', {}),
+                'prediction': prediction_context.get('prediction', {}),
+                'crop_info': prediction_context.get('crop_info', {}),
+                'total_production': prediction_context.get('total_production', {}),
+                'crop_comparison_top3': (prediction_context.get('crop_comparison') or [])[:3]
+            }
+
+        if context_payload:
+            system_context_note = (
+                'Prediction context from ML model is available below as JSON. '
+                'Use it as source-of-truth for numbers and comparisons. '
+                'If user asks about prediction analysis, explain directly from this context. '
+                'If asked for unsupported data, say what is missing briefly.\n\n'
+                f"MODEL_CONTEXT_JSON:\n{json.dumps(context_payload, ensure_ascii=True)}"
+            )
+        else:
+            system_context_note = (
+                'No current prediction context is available. If user asks about their specific prediction, '
+                'ask them to run a prediction first in the dashboard.'
+            )
+
         client = Groq(api_key=api_key)
         response = client.chat.completions.create(
             model='llama-3.1-8b-instant',
@@ -162,7 +189,8 @@ def chat():
                     'content': (
                         'You are an expert agricultural assistant for crop yield prediction. '
                         'Help users understand crop choices, weather impact, soil factors, '
-                        'predictions, and farming decisions. Be concise and practical.'
+                        'predictions, and farming decisions. Be concise and practical.\n\n'
+                        f'{system_context_note}'
                     )
                 },
                 *messages

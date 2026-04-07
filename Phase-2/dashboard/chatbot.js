@@ -41,6 +41,7 @@
             '  <div>',
             '    <h3>🤖 CropAI Assistant</h3>',
             '    <p>Powered by Groq</p>',
+            '    <p id="chatContextStatus" style="margin-top:4px;font-size:11px;color:#9ca3af;">Context: general advice mode</p>',
             '  </div>',
             '  <button class="chat-close" id="chatClose" type="button" aria-label="Close AI chat">✕</button>',
             '</header>',
@@ -67,6 +68,7 @@
         const chatForm = document.getElementById('chatForm');
         const chatInput = document.getElementById('chatInput');
         const chatSend = document.getElementById('chatSend');
+        const chatContextStatus = document.getElementById('chatContextStatus');
 
         if (!chatToggle || !chatWidget || !chatMessages || !chatForm || !chatInput || !chatSend) {
             return;
@@ -84,6 +86,20 @@
             }
         ];
 
+        function updateContextStatus() {
+            if (!chatContextStatus) return;
+            if (window.latestPredictionContext && window.latestPredictionContext.prediction) {
+                chatContextStatus.textContent = 'Context: latest prediction loaded';
+                chatContextStatus.style.color = '#86efac';
+            } else {
+                chatContextStatus.textContent = 'Context: general advice mode';
+                chatContextStatus.style.color = '#9ca3af';
+            }
+        }
+
+        updateContextStatus();
+        window.addEventListener('predictionContextUpdated', updateContextStatus);
+
         function appendMessage(role, text) {
             const row = document.createElement('div');
             row.className = 'chat-message ' + (role === 'user' ? 'user' : 'bot');
@@ -99,6 +115,7 @@
             chatWidget.style.display = open ? 'flex' : 'none';
             chatToggle.innerHTML = '<span style="font-size:30px;line-height:1">💬</span>';
             chatToggle.title = 'Open AI Assistant';
+            updateContextStatus();
             if (open) {
                 setTimeout(function () {
                     chatInput.focus();
@@ -123,7 +140,8 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        messages: chatHistory.slice(-8)
+                        messages: chatHistory.slice(-8),
+                        prediction_context: window.latestPredictionContext || null
                     })
                 });
 

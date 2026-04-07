@@ -14,6 +14,9 @@ const loadingOverlay = document.getElementById('loadingOverlay');
 const resetBtn = document.getElementById('resetBtn');
 const sampleBtn = document.getElementById('sampleBtn');
 
+// Shared context for chatbot: updated on each successful prediction.
+window.latestPredictionContext = null;
+
 // Feature List (must match API expectations - 75K Synthetic Dataset)
 const FEATURES = [
     'Rainfall_mm',
@@ -106,6 +109,8 @@ if (predictionForm) {
 if (resetBtn) {
     resetBtn.addEventListener('click', () => {
         predictionForm.reset();
+        window.latestPredictionContext = null;
+        window.dispatchEvent(new CustomEvent('predictionContextUpdated', { detail: null }));
         showPlaceholder();
     });
 }
@@ -205,6 +210,16 @@ async function makePrediction() {
         if (result.status === 'success') {
             console.log('✅ API Response:', result);
             displayResults(result, formData);
+
+            // Make latest model output available to chatbot analysis.
+            window.latestPredictionContext = {
+                inputs: formData,
+                prediction: result.prediction || {},
+                crop_info: result.crop_info || {},
+                total_production: result.total_production || {},
+                crop_comparison: result.crop_comparison || []
+            };
+            window.dispatchEvent(new CustomEvent('predictionContextUpdated', { detail: window.latestPredictionContext }));
             
             // NEW: Handle multi-crop comparison results
             if (result.crop_comparison) {
@@ -327,12 +342,114 @@ function displayResults(result, formData = {}) {
     } else if (totalProductionCard) {
         totalProductionCard.style.display = 'none';
     }
+
+    renderFactorInsights(formData, result);
+    renderRiskAlerts(formData, result);
+    renderEconomics(formData, result);
     
     // NEW: Hide comparison section if no comparison requested
     const comparisonSection = document.getElementById('comparisonSection');
     if (comparisonSection && !result.crop_comparison) {
         comparisonSection.style.display = 'none';
     }
+}
+
+function formatINR(amount) {
+    return `₹${Math.round(amount || 0).toLocaleString('en-IN')}`;
+}
+
+function renderEconomics(input, result) {
+    const predictedKgHa = Number(result?.prediction?.yield_kg_per_hectare || 0);
+    const pricePerKg = Number(input?.Crop_Price || DEFAULT_VALUES.Crop_Price || 0);
+    const farmArea = Number(input?.farm_area || 1);
+    const unit = input?.farm_area_unit || 'Hectare';
+    const conversionFactor = { Hectare: 1, Acre: 0.4047, Bigha: 0.2529, Sq_Meter: 0.0001 }[unit] || 1;
+    const areaHa = Math.max(0.1, farmArea * conversionFactor);
+
+    const totalKg = predictedKgHa * areaHa;
+    const revenue = totalKg * pricePerKg;
+
+    const fertAmount = Number(input?.Fertilizer_Amount_kg_per_hectare || DEFAULT_VALUES.Fertilizer_Amount_kg_per_hectare || 0);
+    const fertilizerCost = fertAmount * 22 * areaHa;
+    const baseOpsCost = 12000 * areaHa;
+    const totalCost = fertilizerCost + baseOpsCost;
+    const profit = revenue - totalCost;
+
+    const revenueEl = document.getElementById('estimatedRevenue');
+    const costEl = document.getElementById('estimatedCost');
+    const profitEl = document.getElementById('estimatedProfit');
+
+    if (revenueEl) revenueEl.textContent = formatINR(revenue);
+    if (costEl) costEl.textContent = formatINR(totalCost);
+    if (profitEl) {
+        profitEl.textContent = formatINR(profit);
+        profitEl.style.color = profit >= 0 ? '#2e7d32' : '#c62828';
+    }
+}
+
+function renderRiskAlerts(input, result) {
+    const alerts = [];
+    const temp = Number(input?.Temperature_C || DEFAULT_VALUES.Temperature_C);
+    const rain = Number(input?.Rainfall_mm || DEFAULT_VALUES.Rainfall_mm);
+    const ph = Number(input?.Soil_pH || DEFAULT_VALUES.Soil_pH);
+    const nitrogen = Number(input?.Nitrogen || DEFAULT_VALUES.Nitrogen);
+    const moisture = Number(input?.Soil_Moisture || DEFAULT_VALUES.Soil_Moisture);
+    const yieldKg = Number(result?.prediction?.yield_kg_per_hectare || 0);
+
+    if (temp > 35) alerts.push({ level: 'high', text: 'High heat stress risk (Temperature > 35°C)' });
+    if (rain < 500) alerts.push({ level: 'high', text: 'Drought risk (Rainfall < 500 mm)' });
+    if (ph < 5.5 || ph > 8) alerts.push({ level: 'medium', text: 'Soil pH outside optimal range (5.5 - 8.0)' });
+    if (nitrogen < 60) alerts.push({ level: 'medium', text: 'Low nitrogen risk for vegetative growth' });
+    if (moisture < 35) alerts.push({ level: 'medium', text: 'Low soil moisture may reduce yield' });
+    if (yieldKg < 350) alerts.push({ level: 'high', text: 'Predicted yield is low; management review recommended' });
+
+    const alertsEl = document.getElementById('riskAlertsList');
+    if (!alertsEl) return;
+
+    if (alerts.length === 0) {
+        alertsEl.innerHTML = '<span class="risk-pill low">No major risk alerts for current inputs</span>';
+        return;
+    }
+
+    alertsEl.innerHTML = alerts
+        .map((a) => `<span class="risk-pill ${a.level}">${a.text}</span>`)
+        .join('');
+}
+
+function renderFactorInsights(input, result) {
+    const insights = [];
+    const yieldKg = Number(result?.prediction?.yield_kg_per_hectare || 0);
+
+    const rain = Number(input?.Rainfall_mm || DEFAULT_VALUES.Rainfall_mm);
+    const temp = Number(input?.Temperature_C || DEFAULT_VALUES.Temperature_C);
+    const ph = Number(input?.Soil_pH || DEFAULT_VALUES.Soil_pH);
+    const soilQuality = Number(input?.Soil_Quality || DEFAULT_VALUES.Soil_Quality);
+    const fertilizer = Number(input?.Fertilizer_Amount_kg_per_hectare || DEFAULT_VALUES.Fertilizer_Amount_kg_per_hectare);
+
+    if (rain < 700) insights.push('Rainfall is below optimal; additional irrigation planning can improve yield stability.');
+    else if (rain > 1800) insights.push('High rainfall may increase waterlogging risk; drainage management is important.');
+
+    if (temp > 34) insights.push('Temperature is high for many crops; heat stress mitigation may be needed.');
+    else if (temp < 18) insights.push('Low temperature can slow crop growth and affect final yield.');
+
+    if (ph < 6 || ph > 7.8) insights.push('Soil pH is outside the sweet spot; pH correction may improve nutrient uptake.');
+    if (soilQuality < 60) insights.push('Soil quality index is moderate/low; adding organic matter can improve productivity.');
+
+    if (fertilizer < 120) insights.push('Fertilizer input appears low; balanced NPK schedule could improve output.');
+    else if (fertilizer > 300) insights.push('Fertilizer input is high; optimize dosage to avoid cost and diminishing returns.');
+
+    if (yieldKg >= 800) insights.unshift('Current settings are strong; maintain consistency and monitor weather swings.');
+    if (yieldKg < 400) insights.unshift('Predicted yield is currently low; prioritize water, pH, and nutrient corrections first.');
+
+    const listEl = document.getElementById('factorInsightsList');
+    if (!listEl) return;
+
+    if (insights.length === 0) {
+        listEl.innerHTML = '<li>Inputs are close to balanced ranges. Fine-tune farm management for incremental gains.</li>';
+        return;
+    }
+
+    listEl.innerHTML = insights.map((tip) => `<li>${tip}</li>`).join('');
 }
 
 /**
@@ -471,6 +588,11 @@ function showPlaceholder() {
     const yieldTonsEl = document.getElementById('yieldTons');
     const yieldQuintals = document.getElementById('yieldQuintals');
     const totalProductionCard = document.getElementById('totalProductionCard');
+    const factorInsightsList = document.getElementById('factorInsightsList');
+    const riskAlertsList = document.getElementById('riskAlertsList');
+    const estimatedRevenue = document.getElementById('estimatedRevenue');
+    const estimatedCost = document.getElementById('estimatedCost');
+    const estimatedProfit = document.getElementById('estimatedProfit');
     const errorMessage = document.getElementById('errorMessage');
 
     if (resultsTitle) resultsTitle.textContent = '📈 Prediction Results';
@@ -481,6 +603,14 @@ function showPlaceholder() {
     if (yieldTonsEl) yieldTonsEl.textContent = '0 tons';
     if (yieldQuintals) yieldQuintals.textContent = '0 q';
     if (totalProductionCard) totalProductionCard.style.display = 'none';
+    if (factorInsightsList) factorInsightsList.innerHTML = '<li>Run a prediction to see factor-level analysis.</li>';
+    if (riskAlertsList) riskAlertsList.innerHTML = '<span class="risk-pill low">No active alerts</span>';
+    if (estimatedRevenue) estimatedRevenue.textContent = '₹0';
+    if (estimatedCost) estimatedCost.textContent = '₹0';
+    if (estimatedProfit) {
+        estimatedProfit.textContent = '₹0';
+        estimatedProfit.style.color = 'var(--primary)';
+    }
     if (errorMessage) errorMessage.style.display = 'none';
 }
 

@@ -669,6 +669,97 @@ body {
     margin-bottom: var(--spacing-md);
 }
 
+/* ============ INSIGHTS & ECONOMICS ============ */
+
+.insight-card,
+.risk-card,
+.economics-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
+}
+
+.insight-card h3,
+.risk-card h3,
+.economics-card h3 {
+    color: var(--primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.insight-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.insight-list li {
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border-radius: var(--radius-sm);
+    background: #ffffff;
+    border-left: 4px solid var(--primary);
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+}
+
+.risk-alerts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.risk-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.risk-pill.low {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.risk-pill.medium {
+    background: #fff8e1;
+    color: #a16d00;
+}
+
+.risk-pill.high {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.economics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.economics-item {
+    background: #ffffff;
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+}
+
+.economics-label {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.economics-value {
+    color: var(--primary);
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
 /* ============ ERROR MESSAGE ============ */
 
 .error-message {
